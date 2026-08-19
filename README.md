@@ -6,8 +6,8 @@ them on any device, and always open on the exact line you stopped at.
 ## How it works
 
 There are no accounts. The service holds one library, so opening it in any browser or on any phone shows
-the same shelf and the same reading positions. That also means anyone with the URL can change it — keep the
-address private.
+the same shelf and the same reading positions. A short PIN guards it: enter it once per device and it is
+remembered until the server rejects it.
 
 Each book is fingerprinted in the browser from its filename, byte size, and first 512 KB (SHA-256), so
 adding the same file twice is recognised as the same book. The file uploads to the server once; after that

@@ -1,4 +1,13 @@
+import { getPin, setPin } from './lock'
+
 const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+
+const PIN_HEADER = 'X-Reader-Pin'
+
+function headers(extra = {}) {
+  const pin = getPin()
+  return pin ? { ...extra, [PIN_HEADER]: pin } : extra
+}
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -11,9 +20,13 @@ async function request(path, { method = 'GET', body, keepalive = false } = {}) {
   const response = await fetch(`${BASE_URL}/api${path}`, {
     method,
     keepalive,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    headers: headers(body ? { 'Content-Type': 'application/json' } : {}),
     body: body ? JSON.stringify(body) : undefined,
   })
+
+  if (response.status === 401 && getPin()) {
+    setPin(null)
+  }
 
   if (response.status === 204) {
     return null
@@ -31,6 +44,20 @@ async function request(path, { method = 'GET', body, keepalive = false } = {}) {
 export const api = {
   health: () => request('/health'),
 
+  unlock: async (pin) => {
+    const response = await fetch(`${BASE_URL}/api/unlock`, {
+      method: 'POST',
+      headers: { [PIN_HEADER]: pin },
+    })
+
+    if (response.ok) {
+      return true
+    }
+
+    const payload = await response.json().catch(() => null)
+    throw new ApiError(payload?.error ?? 'Could not unlock', response.status)
+  },
+
   library: () => request('/books'),
   registerBook: (book) => request('/books', { method: 'POST', body: book }),
   book: (key) => request(`/books/${key}`),
@@ -44,7 +71,11 @@ export const api = {
     const form = new FormData()
     form.append('file', file, file.name)
 
-    const response = await fetch(`${BASE_URL}/api/books/${key}/file`, { method: 'POST', body: form })
+    const response = await fetch(`${BASE_URL}/api/books/${key}/file`, {
+      method: 'POST',
+      headers: headers(),
+      body: form,
+    })
     const payload = await response.json().catch(() => null)
 
     if (!response.ok) {
@@ -54,7 +85,7 @@ export const api = {
   },
 
   downloadFile: async (key) => {
-    const response = await fetch(`${BASE_URL}/api/books/${key}/file`)
+    const response = await fetch(`${BASE_URL}/api/books/${key}/file`, { headers: headers() })
     if (!response.ok) {
       throw new ApiError('Could not download this book', response.status)
     }
