@@ -1,0 +1,39 @@
+import { getReaderId } from './identity'
+
+const BASE_URL = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+
+async function request(path, { method = 'GET', body, keepalive = false } = {}) {
+  const response = await fetch(`${BASE_URL}/api${path}`, {
+    method,
+    keepalive,
+    headers: {
+      'X-Reader-Id': getReaderId(),
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  if (response.status === 204) {
+    return null
+  }
+
+  const payload = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    throw new Error(payload?.error ?? `Request failed with status ${response.status}`)
+  }
+
+  return payload
+}
+
+export const api = {
+  health: () => request('/health'),
+  library: () => request('/books'),
+  register: (book) => request('/books', { method: 'POST', body: book }),
+  book: (key) => request(`/books/${key}`),
+  saveProgress: (key, progress, keepalive = false) =>
+    request(`/books/${key}/progress`, { method: 'PUT', body: progress, keepalive }),
+  reset: (key) => request(`/books/${key}/reset`, { method: 'POST' }),
+  restore: (key, index) => request(`/books/${key}/restore`, { method: 'POST', body: { index } }),
+  remove: (key) => request(`/books/${key}`, { method: 'DELETE' }),
+}
