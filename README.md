@@ -5,8 +5,9 @@ them on any device, and always open on the exact line you stopped at.
 
 ## How it works
 
-You sign in with an email and password, and everything after that belongs to the account — the library, the
-books, and your place in each one. Signing in from another browser or phone gives you the same shelf.
+There are no accounts. The service holds one library, so opening it in any browser or on any phone shows
+the same shelf and the same reading positions. That also means anyone with the URL can change it — keep the
+address private.
 
 Each book is fingerprinted in the browser from its filename, byte size, and first 512 KB (SHA-256), so
 adding the same file twice is recognised as the same book. The file uploads to the server once; after that

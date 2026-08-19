@@ -3,7 +3,6 @@ import AddBooks from '../components/AddBooks'
 import BookTile from '../components/BookTile'
 import ContinueReading from '../components/ContinueReading'
 import Spinner from '../components/Spinner'
-import AccountMenu from '../components/AccountMenu'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { api } from '../lib/api'
 import { cacheFile, dropFile } from '../lib/fileCache'
@@ -145,10 +144,7 @@ export default function Library() {
       <header className="sticky top-0 z-20 border-b border-line bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4 sm:px-8">
           <h1 className="font-serif text-lg tracking-tight">meReader</h1>
-          <div className="flex items-center gap-3">
-            <AddBooks onFiles={addFiles} busy={busy} subtle />
-            <AccountMenu />
-          </div>
+          <AddBooks onFiles={addFiles} busy={busy} subtle />
         </div>
       </header>
 
