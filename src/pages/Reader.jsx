@@ -39,8 +39,8 @@ export default function Reader() {
   const startLocation = useRef(null)
   const surfaceRef = useRef(null)
 
-  const { isImmersive, enter, exit } = useImmersiveMode()
-  const { visible, toggle, reveal } = useIdleChrome()
+  const { isImmersive, enter, exit, canFullscreen } = useImmersiveMode()
+  const { visible, toggle, hide } = useIdleChrome()
 
   const { report, flush } = useReadingSession(key, (saved) => {
     setBook((current) => (current ? { ...current, ...saved } : saved))
@@ -87,9 +87,9 @@ export default function Reader() {
     (location) => {
       setLive({ percent: location.percent, label: location.label })
       report(location)
-      reveal()
+      hide()
     },
-    [report, reveal],
+    [report, hide],
   )
 
   const handleReady = useCallback(
@@ -169,6 +169,14 @@ export default function Reader() {
   }, [key, flush, applyBook])
 
   useEffect(() => {
+    if (status !== 'reading') {
+      return undefined
+    }
+    enter()
+    return undefined
+  }, [status, enter])
+
+  useEffect(() => {
     if (status !== 'reading' || book?.format !== 'pdf') {
       return undefined
     }
@@ -181,8 +189,7 @@ export default function Reader() {
     } else {
       enter()
     }
-    reveal()
-  }, [isImmersive, enter, exit, reveal])
+  }, [isImmersive, enter, exit])
 
   if (status === 'loading' || status === 'fetching') {
     return (
@@ -232,7 +239,7 @@ export default function Reader() {
               onReady={handleReady}
               onError={(failure) => setError(failure.message)}
               onTap={toggle}
-              onActivity={reveal}
+              onActivity={hide}
               fontScale={scale}
               scheme={scheme}
             />
@@ -250,6 +257,7 @@ export default function Reader() {
         label={live.label || book?.current?.label || 'Ready'}
         percent={live.percent}
         immersive={isImmersive}
+        canFullscreen={canFullscreen}
         scale={scale}
         onToggleImmersive={toggleImmersive}
         onOpenHistory={() => setHistoryOpen(true)}

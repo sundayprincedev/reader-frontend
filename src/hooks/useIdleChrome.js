@@ -1,18 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-export function useIdleChrome(delay = 3200) {
-  const [visible, setVisible] = useState(true)
+export function useIdleChrome(delay = 4000) {
+  const [visible, setVisible] = useState(false)
   const timer = useRef(null)
-
-  const schedule = useCallback(() => {
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => setVisible(false), delay)
-  }, [delay])
-
-  const reveal = useCallback(() => {
-    setVisible(true)
-    schedule()
-  }, [schedule])
 
   const hide = useCallback(() => {
     clearTimeout(timer.current)
@@ -21,19 +11,16 @@ export function useIdleChrome(delay = 3200) {
 
   const toggle = useCallback(() => {
     setVisible((current) => {
+      clearTimeout(timer.current)
       if (current) {
-        clearTimeout(timer.current)
         return false
       }
-      schedule()
+      timer.current = setTimeout(() => setVisible(false), delay)
       return true
     })
-  }, [schedule])
+  }, [delay])
 
-  useEffect(() => {
-    schedule()
-    return () => clearTimeout(timer.current)
-  }, [schedule])
+  useEffect(() => () => clearTimeout(timer.current), [])
 
-  return { visible, reveal, toggle, hide }
+  return { visible, toggle, hide }
 }

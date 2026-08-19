@@ -3,18 +3,19 @@ import BookCover from './BookCover'
 import Progress from './Progress'
 import RemoveButton from './RemoveButton'
 import { formatPercent } from '../lib/format'
+import { enterFullscreen } from '../lib/immersive'
 
 export default function BookTile({ book, onRemove }) {
   const percent = book.current?.percent || 0
 
   return (
     <article className="group relative">
-      <Link to={`/read/${book.key}`} className="block">
+      <Link to={`/read/${book.key}`} onClick={enterFullscreen} className="block">
         <BookCover book={book} className="transition duration-300 group-hover:-translate-y-1 group-hover:shadow-lift" />
       </Link>
 
       <div className="mt-3 space-y-1.5">
-        <Link to={`/read/${book.key}`} className="block">
+        <Link to={`/read/${book.key}`} onClick={enterFullscreen} className="block">
           <h3 className="truncate font-serif text-[15px] leading-snug text-ink">{book.title}</h3>
           <p className="truncate text-xs text-faint">{book.author || 'Unknown author'}</p>
         </Link>

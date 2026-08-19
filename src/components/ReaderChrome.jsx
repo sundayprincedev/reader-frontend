@@ -12,6 +12,7 @@ export default function ReaderChrome({
   label,
   percent,
   immersive,
+  canFullscreen,
   scale,
   onToggleImmersive,
   onOpenHistory,
@@ -51,14 +52,16 @@ export default function ReaderChrome({
           <button type="button" aria-label="Reading history" className={CONTROL} onClick={onOpenHistory}>
             <Clock className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            aria-label={immersive ? 'Exit full screen' : 'Enter full screen'}
-            className={CONTROL}
-            onClick={onToggleImmersive}
-          >
-            {immersive ? <Collapse className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
-          </button>
+          {canFullscreen ? (
+            <button
+              type="button"
+              aria-label={immersive ? 'Exit full screen' : 'Enter full screen'}
+              className={CONTROL}
+              onClick={onToggleImmersive}
+            >
+              {immersive ? <Collapse className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+            </button>
+          ) : null}
         </div>
       </header>
 
