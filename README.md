@@ -15,6 +15,10 @@ opened loads instantly and works offline.
 
 Positions are stored per format: PDFs as a page plus a fractional offset within that page, EPUBs as a CFI.
 
+A book can only be removed once you have finished it, or if you have never opened it — the remove control
+simply is not there while a book is in progress. The backend enforces the same rule, so the shelf cannot
+drift from it.
+
 ## Run it
 
 ```bash

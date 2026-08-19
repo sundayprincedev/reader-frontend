@@ -176,7 +176,7 @@ export default function Library() {
           </section>
         ) : (
           <div className="space-y-16">
-            {current ? <ContinueReading book={current} onRemove={setPendingRemoval} /> : null}
+            {current ? <ContinueReading book={current} /> : null}
 
             {rest.length > 0 ? (
               <section className="animate-rise">
@@ -202,7 +202,11 @@ export default function Library() {
         open={Boolean(pendingRemoval)}
         busy={busy}
         title={`Remove ${pendingRemoval?.title ?? ''}?`}
-        body="This deletes the stored file and your reading history for it. You can add the book again later, but it will start from the beginning."
+        body={
+          pendingRemoval?.finished
+            ? 'You finished this one. Removing it deletes the stored file and everything meReader remembers about your read.'
+            : 'Removing this deletes the stored file. You can add it again later whenever you want to start it.'
+        }
         confirmLabel="Remove"
         onConfirm={removeBook}
         onCancel={() => setPendingRemoval(null)}

@@ -27,11 +27,13 @@ export default function BookTile({ book, onRemove }) {
         </div>
       </div>
 
-      <RemoveButton
-        onClick={() => onRemove(book)}
-        label={`Remove ${book.title}`}
-        className="absolute right-1.5 top-1.5 opacity-70 group-hover:opacity-100"
-      />
+      {book.removable ? (
+        <RemoveButton
+          onClick={() => onRemove(book)}
+          label={`Remove ${book.title}`}
+          className="absolute right-1.5 top-1.5 opacity-70 group-hover:opacity-100"
+        />
+      ) : null}
     </article>
   )
 }
