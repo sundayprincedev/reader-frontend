@@ -3,7 +3,7 @@ import UploadZone from '../components/UploadZone'
 import BookCard from '../components/BookCard'
 import Spinner from '../components/Spinner'
 import DeviceSync from '../components/DeviceSync'
-import { BookIcon } from '../components/Icons'
+import { DevicesIcon } from '../components/Icons'
 import { api } from '../lib/api'
 import { availableKeys, removeFile, saveFile } from '../lib/localLibrary'
 import { deriveBookKey, detectFormat, titleFromFilename } from '../lib/bookKey'
@@ -103,105 +103,89 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full bg-ink-950 text-ink-200">
-      <div className="mx-auto w-full max-w-6xl px-5 pb-20 pt-10 sm:px-8">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="flex items-center gap-3 text-2xl font-semibold text-white">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink-800 text-amber">
-                <BookIcon />
-              </span>
+      <div className="mx-auto w-full max-w-3xl px-4 pb-28 pt-8 sm:px-8 sm:pb-20 sm:pt-14">
+        <header className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.22em] text-ink-400">Private press</p>
+            <h1 className="mt-1 font-display text-[2.5rem] leading-none text-ink-50 sm:text-5xl">
               meReader
             </h1>
-            <p className="mt-2 text-sm text-ink-400">
-              Your library picks up exactly where you left off, on any device.
-            </p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setSyncOpen(true)}
-              className="rounded-xl border border-ink-700 bg-ink-900 px-4 py-2.5 text-sm text-ink-400 transition hover:text-ink-200"
-            >
-              Sync devices
-            </button>
-
-            <div className="flex gap-1 rounded-xl border border-ink-700 bg-ink-900 p-1">
-              {FILTERS.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  onClick={() => setFilter(entry.id)}
-                  className={`rounded-lg px-4 py-2 text-sm transition ${
-                    filter === entry.id ? 'bg-ink-700 text-white' : 'text-ink-400 hover:text-ink-200'
-                  }`}
-                >
-                  {entry.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSyncOpen(true)}
+            className="mt-1 flex h-11 items-center gap-2 px-1 text-sm text-ink-400 active:text-ink-50"
+          >
+            <DevicesIcon />
+            <span className="hidden sm:inline">Devices</span>
+          </button>
         </header>
 
         {stats ? (
-          <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <StatTile label="Books" value={stats.books} />
-            <StatTile label="In progress" value={stats.started} />
-            <StatTile label="Finished" value={stats.finished} />
-            <StatTile label="Time read" value={formatDuration(stats.secondsRead)} />
-          </section>
-        ) : null}
-
-        {stats?.books > 0 ? (
-          <p className="mt-4 text-xs text-ink-400">
-            Average progress across your library: {formatPercent(stats.averagePercent)}
+          <p className="mt-6 max-w-xl font-display text-lg italic leading-snug text-ink-200 sm:text-xl">
+            {stats.books} on the shelf
+            <span className="text-ink-400"> · </span>
+            {stats.started} underway
+            <span className="text-ink-400"> · </span>
+            {formatDuration(stats.secondsRead)} read
+            {stats.books > 0 ? (
+              <span className="text-ink-400"> · {formatPercent(stats.averagePercent)} through</span>
+            ) : null}
           </p>
         ) : null}
 
-        <section className="mt-8">
+        <nav className="-mx-4 mt-8 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+          {FILTERS.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              onClick={() => setFilter(entry.id)}
+              className={`h-11 shrink-0 px-3 text-sm ${
+                filter === entry.id
+                  ? 'text-ink-50 underline decoration-rust decoration-2 underline-offset-8'
+                  : 'text-ink-400'
+              }`}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-6 hidden sm:block">
           <UploadZone onFiles={handleFiles} busy={busy} />
-        </section>
+        </div>
 
         {message ? (
-          <p className="mt-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {message}
-          </p>
+          <p className="mt-6 border-l-2 border-red-500/80 pl-3 text-sm text-red-400">{message}</p>
         ) : null}
 
-        <section className="mt-8">
+        <section className="mt-2">
           {status === 'loading' ? (
-            <div className="py-16">
-              <Spinner label="Loading your library" />
+            <div className="py-20">
+              <Spinner label="Loading the shelf" />
             </div>
           ) : books.length === 0 ? (
-            <p className="rounded-2xl border border-ink-700 bg-ink-900 px-6 py-14 text-center text-sm text-ink-400">
-              Nothing here yet. Add a PDF or EPUB above to start reading.
-            </p>
+            <p className="py-16 font-display text-2xl italic text-ink-400">The shelf is empty.</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="divide-y divide-ink-700 border-y border-ink-700">
               {books.map((book) => (
-                <BookCard
-                  key={book.key}
-                  book={book}
-                  available={present.has(book.key)}
-                  onRemove={handleRemove}
-                />
+                <li key={book.key}>
+                  <BookCard book={book} available={present.has(book.key)} onRemove={handleRemove} />
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </section>
       </div>
 
-      <DeviceSync open={syncOpen} onClose={() => setSyncOpen(false)} />
-    </div>
-  )
-}
+      <div
+        className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-700 bg-ink-950 px-4 pt-3 sm:hidden"
+        style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+      >
+        <UploadZone onFiles={handleFiles} busy={busy} compact />
+      </div>
 
-function StatTile({ label, value }) {
-  return (
-    <div className="rounded-2xl border border-ink-700 bg-ink-900 px-5 py-4">
-      <p className="text-xs uppercase tracking-wider text-ink-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-white">{value}</p>
+      <DeviceSync open={syncOpen} onClose={() => setSyncOpen(false)} />
     </div>
   )
 }

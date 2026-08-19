@@ -7,6 +7,7 @@ function fullscreenElement() {
 export function useImmersiveMode() {
   const [isImmersive, setIsImmersive] = useState(Boolean(fullscreenElement()))
   const wakeLock = useRef(null)
+  const wanted = useRef(Boolean(fullscreenElement()))
 
   const releaseWakeLock = useCallback(async () => {
     try {
@@ -29,6 +30,7 @@ export function useImmersiveMode() {
   }, [])
 
   const enter = useCallback(async () => {
+    wanted.current = true
     const target = document.documentElement
     const request = target.requestFullscreen ?? target.webkitRequestFullscreen
 
@@ -43,6 +45,7 @@ export function useImmersiveMode() {
   }, [acquireWakeLock])
 
   const exit = useCallback(async () => {
+    wanted.current = false
     const request = document.exitFullscreen ?? document.webkitExitFullscreen
 
     if (fullscreenElement()) {
@@ -58,9 +61,19 @@ export function useImmersiveMode() {
   }, [releaseWakeLock])
 
   useEffect(() => {
-    const sync = () => setIsImmersive(Boolean(fullscreenElement()))
+    const sync = () => {
+      const active = Boolean(fullscreenElement())
+      if (active) {
+        wanted.current = true
+        setIsImmersive(true)
+        return
+      }
+      if (!wanted.current) {
+        setIsImmersive(false)
+      }
+    }
     const reacquire = () => {
-      if (document.visibilityState === 'visible' && isImmersive) {
+      if (document.visibilityState === 'visible' && wanted.current) {
         acquireWakeLock()
       }
     }
@@ -74,7 +87,12 @@ export function useImmersiveMode() {
       document.removeEventListener('webkitfullscreenchange', sync)
       document.removeEventListener('visibilitychange', reacquire)
     }
-  }, [acquireWakeLock, isImmersive])
+  }, [acquireWakeLock])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('is-immersive', isImmersive)
+    return () => document.documentElement.classList.remove('is-immersive')
+  }, [isImmersive])
 
   useEffect(() => () => { releaseWakeLock() }, [releaseWakeLock])
 

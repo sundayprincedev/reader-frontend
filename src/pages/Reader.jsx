@@ -37,12 +37,17 @@ export default function Reader() {
 
   const startLocation = useRef(null)
   const surfaceRef = useRef(null)
+  const locationPrimed = useRef(false)
   const { isImmersive, enter, exit } = useImmersiveMode()
-  const { visible, toggle, reveal } = useIdleChrome()
+  const { visible, toggle, reveal, hide } = useIdleChrome()
 
   const { report, flush } = useReadingSession(key, (saved) => {
     setBook((current) => (current ? { ...current, ...saved } : saved))
   })
+
+  useEffect(() => {
+    locationPrimed.current = false
+  }, [key])
 
   useEffect(() => {
     let cancelled = false
@@ -84,9 +89,13 @@ export default function Reader() {
     (location) => {
       setLive({ percent: location.percent, label: location.label })
       report(location)
-      reveal()
+      if (locationPrimed.current) {
+        hide()
+      } else {
+        locationPrimed.current = true
+      }
     },
-    [report, reveal],
+    [report, hide],
   )
 
   const handleReady = useCallback(
@@ -129,6 +138,7 @@ export default function Reader() {
 
   const applyBook = useCallback((updated) => {
     startLocation.current = updated.current
+    locationPrimed.current = false
     setBook(updated)
     setLive({ percent: updated.current?.percent || 0, label: updated.current?.label || '' })
     setStatus('reloading')
@@ -190,30 +200,31 @@ export default function Reader() {
   const toggleImmersive = useCallback(() => {
     if (isImmersive) {
       exit()
+      reveal()
     } else {
       enter()
+      hide()
     }
-    reveal()
-  }, [isImmersive, enter, exit, reveal])
+  }, [isImmersive, enter, exit, reveal, hide])
 
   if (status === 'loading') {
     return (
       <div className="flex h-full items-center justify-center bg-ink-950">
-        <Spinner label="Opening your book" />
+        <Spinner label="Opening" />
       </div>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-4 bg-ink-950 px-6 text-center">
-        <p className="text-sm text-red-300">{error}</p>
+      <div className="flex h-full flex-col items-center justify-center gap-5 bg-ink-950 px-5 text-center">
+        <p className="max-w-sm text-sm text-red-400">{error}</p>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="rounded-xl bg-ink-700 px-5 py-2.5 text-sm text-ink-200 transition hover:bg-ink-600"
+          className="min-h-11 px-1 text-sm text-ink-200 underline decoration-ink-600 underline-offset-4"
         >
-          Back to library
+          Back to the shelf
         </button>
       </div>
     )
@@ -221,16 +232,16 @@ export default function Reader() {
 
   if (status === 'missing-file') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-5 bg-ink-950 px-6 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-6 bg-ink-950 px-5 text-center">
         <div>
-          <h2 className="text-lg font-semibold text-white">{book?.title}</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">
-            This device does not have the file yet. Your progress is safe — pick the same file to continue
-            from {Math.round(book?.current?.percent || 0)}%.
+          <h2 className="font-display text-3xl text-ink-50">{book?.title}</h2>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-ink-400">
+            This device does not have the file. Progress is kept at {Math.round(book?.current?.percent || 0)}%
+            — choose the same file to continue.
           </p>
         </div>
 
-        <label className="cursor-pointer rounded-xl bg-amber px-5 py-3 text-sm font-medium text-ink-950 transition hover:brightness-110">
+        <label className="min-h-12 cursor-pointer bg-rust px-6 py-3 text-sm font-medium text-ink-50">
           Choose the file
           <input
             type="file"
@@ -246,10 +257,14 @@ export default function Reader() {
           />
         </label>
 
-        {error ? <p className="max-w-sm text-xs text-red-300">{error}</p> : null}
+        {error ? <p className="max-w-sm text-xs text-red-400">{error}</p> : null}
 
-        <button type="button" onClick={() => navigate('/')} className="text-sm text-ink-400 hover:text-ink-200">
-          Back to library
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="min-h-11 text-sm text-ink-400 underline decoration-ink-700 underline-offset-4"
+        >
+          Back to the shelf
         </button>
       </div>
     )
@@ -277,7 +292,7 @@ export default function Reader() {
               onReady={handleReady}
               onError={(readerError) => setError(readerError.message)}
               onTap={toggle}
-              onActivity={reveal}
+              onScroll={hide}
               fontScale={scale}
             />
           )

@@ -80,3 +80,10 @@ export const BookIcon = (props) => (
     <path d="M20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2z" />
   </Icon>
 )
+
+export const DevicesIcon = (props) => (
+  <Icon {...props}>
+    <rect x="3" y="4" width="12" height="16" rx="1.5" />
+    <path d="M15 8h5v11a1.5 1.5 0 0 1-1.5 1.5H15" />
+  </Icon>
+)

@@ -5,8 +5,7 @@ import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
 
-const HORIZONTAL_PADDING = 24
-const PAGE_GAP = 12
+const PAGE_GAP = 8
 const RENDER_MARGIN = '200% 0px'
 const MAX_LIVE_CANVASES = 10
 
@@ -31,8 +30,9 @@ export default function PdfReader({ file, startLocation, onLocationChange, onRea
     if (!containerWidth || basePages.length === 0) {
       return 0
     }
+    const pad = containerWidth < 640 ? 12 : 28
     const widest = Math.max(...basePages.map((page) => page.width))
-    return ((containerWidth - HORIZONTAL_PADDING) / widest) * zoom
+    return ((containerWidth - pad) / widest) * zoom
   }, [containerWidth, basePages, zoom])
 
   const layout = useMemo(() => {
@@ -274,15 +274,15 @@ export default function PdfReader({ file, startLocation, onLocationChange, onRea
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="h-full w-full overflow-y-auto overflow-x-hidden overscroll-none bg-ink-950 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="h-full w-full overflow-y-auto overflow-x-hidden overscroll-none bg-ink-950 [scrollbar-width:none] [touch-action:pan-y] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex flex-col items-center gap-3 py-6">
+      <div className="flex flex-col items-center gap-2 py-4 sm:gap-3 sm:py-6">
         {layout.map((page, index) => (
           <div
             key={index + 1}
             data-page={index + 1}
             style={{ width: page.width, height: page.height }}
-            className="overflow-hidden rounded-lg bg-white shadow-2xl shadow-black/50"
+            className="overflow-hidden bg-[#f4efe4]"
           >
             <canvas
               ref={(node) => {

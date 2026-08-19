@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { PlusIcon } from './Icons'
 
-export default function UploadZone({ onFiles, busy }) {
+export default function UploadZone({ onFiles, busy, compact = false }) {
   const inputRef = useRef(null)
   const [dragging, setDragging] = useState(false)
 
@@ -28,9 +28,21 @@ export default function UploadZone({ onFiles, busy }) {
         handleFiles(event.dataTransfer.files)
       }}
       onClick={() => inputRef.current?.click()}
-      className={`group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed p-8 text-center transition ${
-        dragging ? 'border-amber bg-amber/5' : 'border-ink-600 bg-ink-900/60 hover:border-ink-400'
-      }`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          inputRef.current?.click()
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      className={
+        compact
+          ? 'flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 bg-rust text-sm font-medium text-ink-50 active:brightness-110'
+          : `flex w-full cursor-pointer flex-col items-start gap-1 border border-dashed px-5 py-6 text-left transition ${
+              dragging ? 'border-rust bg-rust/10' : 'border-ink-600 hover:border-ink-400'
+            }`
+      }
     >
       <input
         ref={inputRef}
@@ -43,17 +55,19 @@ export default function UploadZone({ onFiles, busy }) {
           event.target.value = ''
         }}
       />
-      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink-800 text-amber transition group-hover:scale-105">
-        <PlusIcon />
-      </span>
-      <div>
-        <p className="text-sm font-medium text-ink-200">
-          {busy ? 'Preparing your books…' : 'Add PDF or EPUB'}
-        </p>
-        <p className="mt-1 text-xs text-ink-400">
-          Files stay on this device. Only your reading position is synced.
-        </p>
-      </div>
+      {compact ? (
+        <>
+          <PlusIcon className="h-4 w-4" />
+          {busy ? 'Adding…' : 'Add a book'}
+        </>
+      ) : (
+        <>
+          <span className="font-display text-xl text-ink-50">{busy ? 'Preparing…' : 'Drop a PDF or EPUB'}</span>
+          <span className="text-[12px] text-ink-400">
+            Files stay on this device. Only your place in the book is synced.
+          </span>
+        </>
+      )}
     </div>
   )
 }

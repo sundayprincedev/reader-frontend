@@ -4,28 +4,31 @@ export default {
     extend: {
       colors: {
         ink: {
-          950: '#080a0f',
-          900: '#0d1017',
-          800: '#141822',
-          700: '#1d2230',
-          600: '#2a3142',
-          400: '#6b7488',
-          200: '#b8bfcd',
+          50: '#f3ead8',
+          100: '#e6d9c0',
+          200: '#d4c8b4',
+          400: '#8f816c',
+          600: '#5c4f40',
+          700: '#3d342a',
+          800: '#26211b',
+          900: '#1c1814',
+          950: '#12100c',
         },
-        amber: '#e8a33d',
+        rust: '#c24e2d',
       },
       fontFamily: {
-        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'ui-serif', 'serif'],
+        sans: ['Source Sans 3', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         serif: ['Literata', 'Georgia', 'ui-serif', 'serif'],
       },
       keyframes: {
-        rise: {
-          '0%': { opacity: '0', transform: 'translateY(10px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        slide: {
+          '0%': { transform: 'translateX(-80%)' },
+          '100%': { transform: 'translateX(180%)' },
         },
       },
       animation: {
-        rise: 'rise 0.35s ease-out both',
+        slide: 'slide 1.1s ease-in-out infinite',
       },
     },
   },

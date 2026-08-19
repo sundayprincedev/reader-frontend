@@ -7,25 +7,25 @@ const LOCATION_GRANULARITY = 1200
 
 const READER_THEME = {
   body: {
-    background: '#0d1017',
-    color: '#d7dce6',
+    background: '#12100c',
+    color: '#e6d9c0',
     'font-family': 'Literata, Georgia, serif',
-    'line-height': '1.75',
-    padding: '8px 4px 96px',
+    'line-height': '1.8',
+    padding: '12px 16px 40px',
   },
-  'a, a:visited': { color: '#e8a33d' },
-  'h1, h2, h3, h4, h5, h6': { color: '#f2f5fa', 'line-height': '1.3' },
+  'a, a:visited': { color: '#c24e2d' },
+  'h1, h2, h3, h4, h5, h6': { color: '#f3ead8', 'line-height': '1.3' },
   img: { 'max-width': '100%', height: 'auto' },
-  'p, li': { 'text-align': 'left', 'hyphens': 'auto' },
+  'p, li': { 'text-align': 'left', hyphens: 'auto' },
 }
 
-export default function EpubReader({ file, startLocation, onLocationChange, onReady, onError, onTap, onActivity, fontScale }) {
+export default function EpubReader({ file, startLocation, onLocationChange, onReady, onError, onTap, onScroll, fontScale }) {
   const initialLocation = useInitialValue(startLocation)
   const reportLocation = useEventCallback(onLocationChange)
   const reportReady = useEventCallback(onReady)
   const reportError = useEventCallback(onError)
   const reportTap = useEventCallback(onTap)
-  const reportActivity = useEventCallback(onActivity)
+  const reportScroll = useEventCallback(onScroll)
   const hostRef = useRef(null)
   const bookRef = useRef(null)
   const renditionRef = useRef(null)
@@ -82,7 +82,12 @@ export default function EpubReader({ file, startLocation, onLocationChange, onRe
 
         rendition.hooks.content.register((contents) => {
           attachTapHandler(contents.document.documentElement, () => reportTap?.())
-          contents.document.addEventListener('scroll', () => reportActivity?.(), { passive: true })
+          const frame = contents.document.documentElement
+          frame.style.touchAction = 'pan-y'
+          frame.style.overscrollBehavior = 'none'
+          const noteScroll = () => reportScroll?.()
+          contents.document.addEventListener('scroll', noteScroll, { passive: true })
+          contents.window?.addEventListener('scroll', noteScroll, { passive: true })
         })
 
         await rendition.display(initialLocation?.cfi || undefined)
@@ -117,7 +122,7 @@ export default function EpubReader({ file, startLocation, onLocationChange, onRe
       renditionRef.current = null
       bookRef.current = null
     }
-  }, [file, initialLocation, emit, reportReady, reportError, reportTap, reportActivity])
+  }, [file, initialLocation, emit, reportReady, reportError, reportTap, reportScroll])
 
   useEffect(() => {
     if (ready) {
@@ -125,5 +130,5 @@ export default function EpubReader({ file, startLocation, onLocationChange, onRe
     }
   }, [fontScale, ready])
 
-  return <div ref={hostRef} className="h-full w-full overflow-hidden bg-ink-900" />
+  return <div ref={hostRef} className="h-full w-full overflow-hidden bg-ink-950" />
 }

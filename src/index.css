@@ -10,10 +10,17 @@
     height: 100dvh;
   }
 
+  html.is-immersive,
+  html.is-immersive body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   body {
     margin: 0;
-    background-color: #080a0f;
-    color: #b8bfcd;
+    background-color: #12100c;
+    color: #d4c8b4;
+    font-family: 'Source Sans 3', ui-sans-serif, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior: none;
     text-rendering: optimizeLegibility;
@@ -26,7 +33,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid #e8a33d;
+    outline: 2px solid #c24e2d;
     outline-offset: 2px;
   }
 }
