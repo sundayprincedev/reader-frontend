@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
-import ProgressBar from './ProgressBar'
-import { BackIcon, CollapseIcon, ExpandIcon, HistoryIcon } from './Icons'
+import Progress from './Progress'
+import { ArrowLeft, Clock, Collapse, Expand, Type } from './Icons'
 import { formatPercent } from '../lib/format'
 
-const HIT =
-  'flex h-11 min-w-11 items-center justify-center text-ink-200 transition active:text-ink-50'
+const CONTROL =
+  'flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface/95 text-muted backdrop-blur transition hover:text-ink active:scale-95'
 
 export default function ReaderChrome({
   visible,
@@ -12,89 +12,90 @@ export default function ReaderChrome({
   label,
   percent,
   immersive,
+  scale,
   onToggleImmersive,
   onOpenHistory,
   onScaleChange,
-  scale,
   onExit,
 }) {
   const navigate = useNavigate()
 
+  const hidden = visible ? '' : 'invisible opacity-0'
+
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-30 transition-transform duration-500 ease-out ${
-          visible ? 'translate-y-0' : 'pointer-events-none -translate-y-full'
+        className={`pointer-events-none fixed inset-x-0 top-0 z-30 transition-all duration-300 ${
+          visible ? 'translate-y-0 opacity-100' : `-translate-y-3 ${hidden}`
         }`}
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="flex items-center gap-1 border-b border-ink-700 bg-ink-950 px-1.5 py-1.5 sm:gap-2 sm:px-3">
+        <div className="pointer-events-auto flex items-center gap-3 border-b border-line bg-paper/90 px-4 py-3 backdrop-blur-md">
           <button
             type="button"
-            aria-label="Back to the shelf"
-            className={HIT}
+            aria-label="Back to library"
+            className={CONTROL}
             onClick={async () => {
               await onExit?.()
               navigate('/')
             }}
           >
-            <BackIcon />
-            <span className="ml-0.5 hidden text-[13px] sm:inline">Shelf</span>
+            <ArrowLeft className="h-4 w-4" />
           </button>
 
-          <div className="min-w-0 flex-1 px-1 text-center sm:text-left">
-            <p className="truncate font-display text-[17px] leading-tight text-ink-50">{title}</p>
-            <p className="truncate text-[11px] text-ink-400">{label}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-serif text-[15px] leading-tight text-ink">{title}</p>
+            <p className="truncate text-xs text-faint">{label}</p>
           </div>
 
-          <button type="button" aria-label="Reading history" className={HIT} onClick={onOpenHistory}>
-            <HistoryIcon />
+          <button type="button" aria-label="Reading history" className={CONTROL} onClick={onOpenHistory}>
+            <Clock className="h-4 w-4" />
           </button>
           <button
             type="button"
             aria-label={immersive ? 'Exit full screen' : 'Enter full screen'}
-            className={HIT}
+            className={CONTROL}
             onClick={onToggleImmersive}
           >
-            {immersive ? <CollapseIcon /> : <ExpandIcon />}
+            {immersive ? <Collapse className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
           </button>
         </div>
       </header>
 
       <footer
-        className={`fixed inset-x-0 bottom-0 z-30 transition-transform duration-500 ease-out ${
-          visible ? 'translate-y-0' : 'pointer-events-none translate-y-full'
+        className={`pointer-events-none fixed inset-x-0 bottom-0 z-30 transition-all duration-300 ${
+          visible ? 'translate-y-0 opacity-100' : `translate-y-3 ${hidden}`
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="border-t border-ink-700 bg-ink-950 px-3 pb-3 pt-3 sm:px-5">
-          <ProgressBar percent={percent} />
-          <div className="mt-3 flex items-center gap-3">
-            <div className="flex items-center">
-              <button
-                type="button"
-                aria-label="Decrease size"
-                className="flex h-11 w-11 items-center justify-center font-display text-[15px] text-ink-400 active:text-ink-50"
-                onClick={() => onScaleChange(-1)}
-              >
-                A
-              </button>
-              <span className="w-9 text-center text-[11px] tabular-nums text-ink-400">
-                {Math.round(scale * 100)}
-              </span>
-              <button
-                type="button"
-                aria-label="Increase size"
-                className="flex h-11 w-11 items-center justify-center font-display text-[22px] leading-none text-ink-200 active:text-ink-50"
-                onClick={() => onScaleChange(1)}
-              >
-                A
-              </button>
-            </div>
+        <div className="pointer-events-auto flex items-center gap-4 border-t border-line bg-paper/90 px-4 py-3 backdrop-blur-md">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              aria-label="Smaller"
+              onClick={() => onScaleChange(-1)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:text-ink"
+            >
+              <Type className="h-3.5 w-3.5" />
+            </button>
+            <span className="w-9 text-center text-[11px] tabular-nums text-faint">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              type="button"
+              aria-label="Larger"
+              onClick={() => onScaleChange(1)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:text-ink"
+            >
+              <Type className="h-5 w-5" />
+            </button>
+          </div>
 
-            <p className="min-w-0 flex-1 truncate text-right font-display text-sm italic text-ink-400">
+          <div className="flex flex-1 items-center gap-3">
+            <Progress value={percent} className="flex-1" />
+            <span className="w-9 text-right text-[11px] tabular-nums text-faint">
               {formatPercent(percent)}
-            </p>
+            </span>
           </div>
         </div>
       </footer>

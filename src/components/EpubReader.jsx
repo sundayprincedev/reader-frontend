@@ -5,30 +5,51 @@ import { attachTapHandler } from '../lib/tap'
 
 const LOCATION_GRANULARITY = 1200
 
-const READER_THEME = {
-  body: {
-    background: '#12100c',
-    color: '#e6d9c0',
-    'font-family': 'Literata, Georgia, serif',
-    'line-height': '1.8',
-    padding: '12px 16px 40px',
-  },
-  'a, a:visited': { color: '#c24e2d' },
-  'h1, h2, h3, h4, h5, h6': { color: '#f3ead8', 'line-height': '1.3' },
-  img: { 'max-width': '100%', height: 'auto' },
-  'p, li': { 'text-align': 'left', hyphens: 'auto' },
+const PALETTES = {
+  light: { background: '#FCFBF8', color: '#1C1A16', heading: '#100F0C', accent: '#A85432' },
+  dark: { background: '#121110', color: '#EDE8DF', heading: '#F7F3EC', accent: '#D88A60' },
 }
 
-export default function EpubReader({ file, startLocation, onLocationChange, onReady, onError, onTap, onScroll, fontScale }) {
+function themeFor(scheme) {
+  const palette = PALETTES[scheme] ?? PALETTES.light
+
+  return {
+    body: {
+      background: palette.background,
+      color: palette.color,
+      'font-family': 'Literata, Georgia, serif',
+      'line-height': '1.8',
+      padding: '12px 16px 64px',
+    },
+    'a, a:visited': { color: palette.accent },
+    'h1, h2, h3, h4, h5, h6': { color: palette.heading, 'line-height': '1.3' },
+    img: { 'max-width': '100%', height: 'auto' },
+    'p, li': { 'text-align': 'left', hyphens: 'auto' },
+  }
+}
+
+export default function EpubReader({
+  file,
+  startLocation,
+  onLocationChange,
+  onReady,
+  onError,
+  onTap,
+  onActivity,
+  fontScale,
+  scheme,
+}) {
   const initialLocation = useInitialValue(startLocation)
   const reportLocation = useEventCallback(onLocationChange)
   const reportReady = useEventCallback(onReady)
   const reportError = useEventCallback(onError)
   const reportTap = useEventCallback(onTap)
-  const reportScroll = useEventCallback(onScroll)
+  const reportActivity = useEventCallback(onActivity)
+
   const hostRef = useRef(null)
   const bookRef = useRef(null)
   const renditionRef = useRef(null)
+  const schemeRef = useRef(scheme)
   const [ready, setReady] = useState(false)
 
   const emit = useEventCallback((location) => {
@@ -77,17 +98,12 @@ export default function EpubReader({ file, startLocation, onLocationChange, onRe
         })
         renditionRef.current = rendition
 
-        rendition.themes.register('mereader', READER_THEME)
+        rendition.themes.register('mereader', themeFor(schemeRef.current))
         rendition.themes.select('mereader')
 
         rendition.hooks.content.register((contents) => {
           attachTapHandler(contents.document.documentElement, () => reportTap?.())
-          const frame = contents.document.documentElement
-          frame.style.touchAction = 'pan-y'
-          frame.style.overscrollBehavior = 'none'
-          const noteScroll = () => reportScroll?.()
-          contents.document.addEventListener('scroll', noteScroll, { passive: true })
-          contents.window?.addEventListener('scroll', noteScroll, { passive: true })
+          contents.document.addEventListener('scroll', () => reportActivity?.(), { passive: true })
         })
 
         await rendition.display(initialLocation?.cfi || undefined)
@@ -122,13 +138,20 @@ export default function EpubReader({ file, startLocation, onLocationChange, onRe
       renditionRef.current = null
       bookRef.current = null
     }
-  }, [file, initialLocation, emit, reportReady, reportError, reportTap, reportScroll])
+  }, [file, initialLocation, emit, reportReady, reportError, reportTap, reportActivity])
 
   useEffect(() => {
-    if (ready) {
-      renditionRef.current?.themes.fontSize(`${Math.round(fontScale * 100)}%`)
-    }
-  }, [fontScale, ready])
+    schemeRef.current = scheme
 
-  return <div ref={hostRef} className="h-full w-full overflow-hidden bg-ink-950" />
+    if (!ready) {
+      return
+    }
+
+    const rendition = renditionRef.current
+    rendition?.themes.register('mereader', themeFor(scheme))
+    rendition?.themes.select('mereader')
+    rendition?.themes.fontSize(`${Math.round(fontScale * 100)}%`)
+  }, [scheme, fontScale, ready])
+
+  return <div ref={hostRef} className="h-full w-full overflow-hidden bg-paper" />
 }

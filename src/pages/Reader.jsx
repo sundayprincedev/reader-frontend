@@ -6,25 +6,26 @@ import ReaderChrome from '../components/ReaderChrome'
 import HistoryPanel from '../components/HistoryPanel'
 import Spinner from '../components/Spinner'
 import { api } from '../lib/api'
-import { loadFile, saveFile } from '../lib/localLibrary'
-import { deriveBookKey } from '../lib/bookKey'
+import { resolveFile } from '../lib/fileCache'
 import { attachTapHandler } from '../lib/tap'
 import { useReadingSession } from '../hooks/useReadingSession'
 import { useImmersiveMode } from '../hooks/useImmersiveMode'
 import { useIdleChrome } from '../hooks/useIdleChrome'
+import { useColorScheme } from '../hooks/useColorScheme'
 
 const SCALE_STEP = 0.1
 const SCALE_BOUNDS = { min: 0.6, max: 2.4 }
-const SCALE_STORAGE_KEY = 'mereader:scale'
+const SCALE_KEY = 'mereader:scale'
 
-function readStoredScale() {
-  const stored = Number(localStorage.getItem(SCALE_STORAGE_KEY))
-  return Number.isFinite(stored) && stored > 0 ? stored : 1
+function storedScale() {
+  const value = Number(localStorage.getItem(SCALE_KEY))
+  return Number.isFinite(value) && value > 0 ? value : 1
 }
 
 export default function Reader() {
   const { key } = useParams()
   const navigate = useNavigate()
+  const scheme = useColorScheme()
 
   const [book, setBook] = useState(null)
   const [file, setFile] = useState(null)
@@ -32,29 +33,25 @@ export default function Reader() {
   const [error, setError] = useState(null)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [scale, setScale] = useState(readStoredScale)
+  const [scale, setScale] = useState(storedScale)
   const [live, setLive] = useState({ percent: 0, label: '' })
 
   const startLocation = useRef(null)
   const surfaceRef = useRef(null)
-  const locationPrimed = useRef(false)
+
   const { isImmersive, enter, exit } = useImmersiveMode()
-  const { visible, toggle, reveal, hide } = useIdleChrome()
+  const { visible, toggle, reveal } = useIdleChrome()
 
   const { report, flush } = useReadingSession(key, (saved) => {
     setBook((current) => (current ? { ...current, ...saved } : saved))
   })
 
   useEffect(() => {
-    locationPrimed.current = false
-  }, [key])
-
-  useEffect(() => {
     let cancelled = false
 
-    async function load() {
+    async function open() {
       try {
-        const [record, blob] = await Promise.all([api.book(key), loadFile(key)])
+        const record = await api.book(key)
         if (cancelled) {
           return
         }
@@ -62,23 +59,24 @@ export default function Reader() {
         startLocation.current = record.current
         setBook(record)
         setLive({ percent: record.current?.percent || 0, label: record.current?.label || '' })
+        setStatus('fetching')
 
-        if (!blob) {
-          setStatus('missing-file')
+        const blob = await resolveFile(key, { synced: record.hasFile })
+        if (cancelled) {
           return
         }
 
         setFile(blob)
         setStatus('reading')
-      } catch (loadError) {
+      } catch (failure) {
         if (!cancelled) {
-          setError(loadError.message)
+          setError(failure.message)
           setStatus('error')
         }
       }
     }
 
-    load()
+    open()
 
     return () => {
       cancelled = true
@@ -89,19 +87,16 @@ export default function Reader() {
     (location) => {
       setLive({ percent: location.percent, label: location.label })
       report(location)
-      if (locationPrimed.current) {
-        hide()
-      } else {
-        locationPrimed.current = true
-      }
+      reveal()
     },
-    [report, hide],
+    [report, reveal],
   )
 
   const handleReady = useCallback(
     async (details) => {
       const title = details?.title?.trim()
       const author = details?.author?.trim()
+
       if (!book || (!title && !author)) {
         return
       }
@@ -110,7 +105,7 @@ export default function Reader() {
       }
 
       try {
-        const updated = await api.register({
+        const updated = await api.registerBook({
           key,
           title: title || book.title,
           author: author || book.author || '',
@@ -131,17 +126,16 @@ export default function Reader() {
         SCALE_BOUNDS.max,
         Math.max(SCALE_BOUNDS.min, Number((current + direction * SCALE_STEP).toFixed(2))),
       )
-      localStorage.setItem(SCALE_STORAGE_KEY, String(next))
+      localStorage.setItem(SCALE_KEY, String(next))
       return next
     })
   }, [])
 
   const applyBook = useCallback((updated) => {
     startLocation.current = updated.current
-    locationPrimed.current = false
     setBook(updated)
     setLive({ percent: updated.current?.percent || 0, label: updated.current?.label || '' })
-    setStatus('reloading')
+    setStatus('restoring')
     requestAnimationFrame(() => setStatus('reading'))
   }, [])
 
@@ -152,8 +146,8 @@ export default function Reader() {
         await flush()
         applyBook(await api.restore(key, index))
         setHistoryOpen(false)
-      } catch (restoreError) {
-        setError(restoreError.message)
+      } catch (failure) {
+        setError(failure.message)
       } finally {
         setBusy(false)
       }
@@ -167,28 +161,12 @@ export default function Reader() {
       await flush()
       applyBook(await api.reset(key))
       setHistoryOpen(false)
-    } catch (resetError) {
-      setError(resetError.message)
+    } catch (failure) {
+      setError(failure.message)
     } finally {
       setBusy(false)
     }
   }, [key, flush, applyBook])
-
-  const handleRelink = useCallback(
-    async (candidate) => {
-      const derived = await deriveBookKey(candidate)
-      if (derived !== key) {
-        setError('That file does not match this book. Pick the exact same file you added before.')
-        return
-      }
-
-      await saveFile(key, candidate)
-      setFile(candidate)
-      setError(null)
-      setStatus('reading')
-    },
-    [key],
-  )
 
   useEffect(() => {
     if (status !== 'reading' || book?.format !== 'pdf') {
@@ -200,78 +178,40 @@ export default function Reader() {
   const toggleImmersive = useCallback(() => {
     if (isImmersive) {
       exit()
-      reveal()
     } else {
       enter()
-      hide()
     }
-  }, [isImmersive, enter, exit, reveal, hide])
+    reveal()
+  }, [isImmersive, enter, exit, reveal])
 
-  if (status === 'loading') {
+  if (status === 'loading' || status === 'fetching') {
     return (
-      <div className="flex h-full items-center justify-center bg-ink-950">
-        <Spinner label="Opening" />
+      <div className="flex h-full items-center justify-center bg-paper">
+        <Spinner label={status === 'fetching' ? 'Fetching your book' : 'Opening'} />
       </div>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-5 bg-ink-950 px-5 text-center">
-        <p className="max-w-sm text-sm text-red-400">{error}</p>
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="min-h-11 px-1 text-sm text-ink-200 underline decoration-ink-600 underline-offset-4"
-        >
-          Back to the shelf
-        </button>
-      </div>
-    )
-  }
-
-  if (status === 'missing-file') {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 bg-ink-950 px-5 text-center">
+      <div className="flex h-full flex-col items-center justify-center gap-5 bg-paper px-6 text-center">
         <div>
-          <h2 className="font-display text-3xl text-ink-50">{book?.title}</h2>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-ink-400">
-            This device does not have the file. Progress is kept at {Math.round(book?.current?.percent || 0)}%
-            — choose the same file to continue.
-          </p>
+          <h2 className="font-serif text-xl">This book would not open</h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted">{error}</p>
         </div>
-
-        <label className="min-h-12 cursor-pointer bg-rust px-6 py-3 text-sm font-medium text-ink-50">
-          Choose the file
-          <input
-            type="file"
-            accept=".pdf,.epub"
-            className="hidden"
-            onChange={(event) => {
-              const candidate = event.target.files?.[0]
-              if (candidate) {
-                handleRelink(candidate)
-              }
-              event.target.value = ''
-            }}
-          />
-        </label>
-
-        {error ? <p className="max-w-sm text-xs text-red-400">{error}</p> : null}
-
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="min-h-11 text-sm text-ink-400 underline decoration-ink-700 underline-offset-4"
+          className="rounded-lg bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:opacity-90"
         >
-          Back to the shelf
+          Back to library
         </button>
       </div>
     )
   }
 
   return (
-    <div className="relative h-full overflow-hidden bg-ink-950">
+    <div className="relative h-full overflow-hidden bg-paper">
       <div ref={surfaceRef} className="absolute inset-0">
         {status === 'reading' && file ? (
           book.format === 'pdf' ? (
@@ -280,7 +220,7 @@ export default function Reader() {
               file={file}
               startLocation={startLocation.current}
               onLocationChange={handleLocation}
-              onError={(readerError) => setError(readerError.message)}
+              onError={(failure) => setError(failure.message)}
               zoom={scale}
             />
           ) : (
@@ -290,15 +230,16 @@ export default function Reader() {
               startLocation={startLocation.current}
               onLocationChange={handleLocation}
               onReady={handleReady}
-              onError={(readerError) => setError(readerError.message)}
+              onError={(failure) => setError(failure.message)}
               onTap={toggle}
-              onScroll={hide}
+              onActivity={reveal}
               fontScale={scale}
+              scheme={scheme}
             />
           )
         ) : (
           <div className="flex h-full items-center justify-center">
-            <Spinner label="Restoring your place" />
+            <Spinner label="Finding your place" />
           </div>
         )}
       </div>
@@ -309,10 +250,10 @@ export default function Reader() {
         label={live.label || book?.current?.label || 'Ready'}
         percent={live.percent}
         immersive={isImmersive}
+        scale={scale}
         onToggleImmersive={toggleImmersive}
         onOpenHistory={() => setHistoryOpen(true)}
         onScaleChange={handleScale}
-        scale={scale}
         onExit={async () => {
           await flush()
           await exit()

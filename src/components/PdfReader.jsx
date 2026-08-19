@@ -274,7 +274,7 @@ export default function PdfReader({ file, startLocation, onLocationChange, onRea
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="h-full w-full overflow-y-auto overflow-x-hidden overscroll-none bg-ink-950 [scrollbar-width:none] [touch-action:pan-y] [&::-webkit-scrollbar]:hidden"
+      className="hide-scrollbar h-full w-full overflow-y-auto overflow-x-hidden overscroll-none bg-paper [touch-action:pan-y]"
     >
       <div className="flex flex-col items-center gap-2 py-4 sm:gap-3 sm:py-6">
         {layout.map((page, index) => (
@@ -282,7 +282,7 @@ export default function PdfReader({ file, startLocation, onLocationChange, onRea
             key={index + 1}
             data-page={index + 1}
             style={{ width: page.width, height: page.height }}
-            className="overflow-hidden bg-[#f4efe4]"
+            className="overflow-hidden rounded-[2px] bg-white shadow-cover"
           >
             <canvas
               ref={(node) => {

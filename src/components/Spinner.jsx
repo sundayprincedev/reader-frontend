@@ -1,10 +1,8 @@
 export default function Spinner({ label }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 text-ink-400">
-      <div className="h-px w-24 overflow-hidden bg-ink-700">
-        <div className="h-full w-1/3 animate-slide bg-rust" />
-      </div>
-      {label ? <p className="font-display text-sm italic">{label}</p> : null}
+    <div className="flex flex-col items-center justify-center gap-4 text-muted">
+      <div className="h-6 w-6 animate-spin rounded-full border border-line border-t-accent" />
+      {label ? <p className="text-sm">{label}</p> : null}
     </div>
   )
 }
