@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import BookCover from './BookCover'
 import Progress from './Progress'
-import { Trash } from './Icons'
+import RemoveButton from './RemoveButton'
 import { formatPercent } from '../lib/format'
 
 export default function BookTile({ book, onRemove }) {
@@ -27,14 +27,11 @@ export default function BookTile({ book, onRemove }) {
         </div>
       </div>
 
-      <button
-        type="button"
+      <RemoveButton
         onClick={() => onRemove(book)}
-        aria-label={`Remove ${book.title}`}
-        className="absolute right-1.5 top-1.5 rounded-md bg-paper/90 p-1.5 text-muted opacity-0 shadow-sm backdrop-blur transition hover:text-accent focus-visible:opacity-100 group-hover:opacity-100"
-      >
-        <Trash className="h-3.5 w-3.5" />
-      </button>
+        label={`Remove ${book.title}`}
+        className="absolute right-1.5 top-1.5 opacity-70 group-hover:opacity-100"
+      />
     </article>
   )
 }

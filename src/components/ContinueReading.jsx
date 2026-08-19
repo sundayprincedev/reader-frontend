@@ -1,14 +1,18 @@
 import { Link } from 'react-router-dom'
 import BookCover from './BookCover'
 import Progress from './Progress'
+import RemoveButton from './RemoveButton'
 import { formatPercent, formatRelative } from '../lib/format'
 
-export default function ContinueReading({ book }) {
+export default function ContinueReading({ book, onRemove }) {
   const percent = book.current?.percent || 0
 
   return (
     <section className="animate-rise">
-      <h2 className="text-xs uppercase tracking-label text-faint">Continue reading</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xs uppercase tracking-label text-faint">Continue reading</h2>
+        <RemoveButton onClick={() => onRemove(book)} label={`Remove ${book.title}`} />
+      </div>
 
       <div className="mt-5 flex gap-6 sm:gap-8">
         <Link to={`/read/${book.key}`} className="w-24 shrink-0 sm:w-32">

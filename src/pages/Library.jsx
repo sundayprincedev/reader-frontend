@@ -4,6 +4,7 @@ import BookTile from '../components/BookTile'
 import ContinueReading from '../components/ContinueReading'
 import Spinner from '../components/Spinner'
 import AccountMenu from '../components/AccountMenu'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { api } from '../lib/api'
 import { cacheFile, dropFile } from '../lib/fileCache'
 import { deriveBookKey, detectFormat, titleFromFilename } from '../lib/bookKey'
@@ -16,6 +17,7 @@ export default function Library() {
   const [notice, setNotice] = useState(null)
   const [busy, setBusy] = useState(false)
   const [dragging, setDragging] = useState(false)
+  const [pendingRemoval, setPendingRemoval] = useState(null)
   const dragDepth = useRef(0)
 
   const refresh = useCallback(async () => {
@@ -76,21 +78,23 @@ export default function Library() {
     [refresh],
   )
 
-  const removeBook = useCallback(
-    async (book) => {
-      setBusy(true)
-      try {
-        await api.remove(book.key)
-        await dropFile(book.key)
-        await refresh()
-      } catch (error) {
-        setNotice(error.message)
-      } finally {
-        setBusy(false)
-      }
-    },
-    [refresh],
-  )
+  const removeBook = useCallback(async () => {
+    if (!pendingRemoval) {
+      return
+    }
+
+    setBusy(true)
+    try {
+      await api.remove(pendingRemoval.key)
+      await dropFile(pendingRemoval.key)
+      setPendingRemoval(null)
+      await refresh()
+    } catch (error) {
+      setNotice(error.message)
+    } finally {
+      setBusy(false)
+    }
+  }, [pendingRemoval, refresh])
 
   const current = useMemo(
     () => books.find((book) => !book.finished && (book.current?.percent || 0) > 0) ?? null,
@@ -172,7 +176,7 @@ export default function Library() {
           </section>
         ) : (
           <div className="space-y-16">
-            {current ? <ContinueReading book={current} /> : null}
+            {current ? <ContinueReading book={current} onRemove={setPendingRemoval} /> : null}
 
             {rest.length > 0 ? (
               <section className="animate-rise">
@@ -185,7 +189,7 @@ export default function Library() {
 
                 <div className="mt-6 grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {rest.map((book) => (
-                    <BookTile key={book.key} book={book} onRemove={removeBook} />
+                    <BookTile key={book.key} book={book} onRemove={setPendingRemoval} />
                   ))}
                 </div>
               </section>
@@ -193,6 +197,16 @@ export default function Library() {
           </div>
         )}
       </main>
+
+      <ConfirmDialog
+        open={Boolean(pendingRemoval)}
+        busy={busy}
+        title={`Remove ${pendingRemoval?.title ?? ''}?`}
+        body="This deletes the stored file and your reading history for it. You can add the book again later, but it will start from the beginning."
+        confirmLabel="Remove"
+        onConfirm={removeBook}
+        onCancel={() => setPendingRemoval(null)}
+      />
 
       {dragging ? (
         <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-paper/80 backdrop-blur-sm">
