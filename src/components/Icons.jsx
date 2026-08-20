@@ -73,6 +73,12 @@ export const Check = (props) => (
   </Icon>
 )
 
+export const Bookmark = (props) => (
+  <Icon {...props}>
+    <path d="M6 4h12v16l-6-4.5L6 20z" />
+  </Icon>
+)
+
 export const Cloud = (props) => (
   <Icon {...props}>
     <path d="M7 18a4 4 0 0 1-.6-7.95 5.5 5.5 0 0 1 10.8-1.1A3.75 3.75 0 0 1 17.5 18z" />

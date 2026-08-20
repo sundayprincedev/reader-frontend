@@ -6,34 +6,56 @@ const DEBOUNCE = 1200
 
 export function useReadingSession(bookKey, onSaved) {
   const pending = useRef(null)
+  const latest = useRef(null)
   const seconds = useRef(0)
   const timer = useRef(null)
-  const savedCallback = useRef(onSaved)
+  const inFlight = useRef(null)
+  const notify = useRef(onSaved)
 
-  savedCallback.current = onSaved
+  notify.current = onSaved
 
   const flush = useCallback(
-    async (keepalive = false) => {
-      if (!bookKey || (!pending.current && seconds.current === 0)) {
-        return
+    async ({ keepalive = false, manual = false } = {}) => {
+      if (!bookKey) {
+        return false
       }
 
-      const location = pending.current
-      const elapsed = Math.round(seconds.current)
+      if (!keepalive && inFlight.current) {
+        await inFlight.current.catch(() => undefined)
+      }
+
+      const location = manual ? latest.current : pending.current
+      if (!location) {
+        return false
+      }
+
+      clearTimeout(timer.current)
       pending.current = null
+
+      const elapsed = Math.round(seconds.current)
       seconds.current = 0
 
-      if (!location) {
-        return
-      }
+      const request = api
+        .saveProgress(bookKey, { ...location, manual, secondsRead: elapsed }, keepalive)
+        .then((book) => {
+          notify.current?.(book)
+          return true
+        })
+        .catch(() => {
+          if (!pending.current) {
+            pending.current = location
+          }
+          seconds.current += elapsed
+          return false
+        })
 
-      try {
-        const book = await api.saveProgress(bookKey, { ...location, secondsRead: elapsed }, keepalive)
-        savedCallback.current?.(book)
-      } catch {
-        pending.current = location
-        seconds.current += elapsed
+      inFlight.current = request
+      const succeeded = await request
+
+      if (inFlight.current === request) {
+        inFlight.current = null
       }
+      return succeeded
     },
     [bookKey],
   )
@@ -41,11 +63,14 @@ export function useReadingSession(bookKey, onSaved) {
   const report = useCallback(
     (location) => {
       pending.current = location
+      latest.current = location
       clearTimeout(timer.current)
-      timer.current = setTimeout(flush, DEBOUNCE)
+      timer.current = setTimeout(() => flush(), DEBOUNCE)
     },
     [flush],
   )
+
+  const save = useCallback(() => flush({ manual: true }), [flush])
 
   useEffect(() => {
     const tick = setInterval(() => {
@@ -56,23 +81,26 @@ export function useReadingSession(bookKey, onSaved) {
 
     const heartbeat = setInterval(() => flush(), FLUSH_INTERVAL)
 
-    const onHidden = () => {
+    const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
-        flush(true)
+        flush({ keepalive: true })
       }
     }
 
-    document.addEventListener('visibilitychange', onHidden)
-    window.addEventListener('pagehide', () => flush(true))
+    const onPageHide = () => flush({ keepalive: true })
+
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onPageHide)
 
     return () => {
       clearInterval(tick)
       clearInterval(heartbeat)
       clearTimeout(timer.current)
-      document.removeEventListener('visibilitychange', onHidden)
-      flush(true)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onPageHide)
+      flush({ keepalive: true })
     }
   }, [flush])
 
-  return { report, flush }
+  return { report, flush, save }
 }

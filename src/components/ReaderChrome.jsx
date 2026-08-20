@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Progress from './Progress'
-import { ArrowLeft, Clock, Collapse, Expand, Type } from './Icons'
+import { ArrowLeft, Bookmark, Check, Clock, Collapse, Expand, Type } from './Icons'
 import { formatPercent } from '../lib/format'
 
 const CONTROL =
@@ -16,6 +16,8 @@ export default function ReaderChrome({
   scale,
   onToggleImmersive,
   onOpenHistory,
+  onSave,
+  saveState,
   onScaleChange,
   onExit,
 }) {
@@ -100,6 +102,23 @@ export default function ReaderChrome({
               {formatPercent(percent)}
             </span>
           </div>
+
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saveState === 'saving'}
+            aria-label="Save this spot"
+            className={`flex h-10 items-center gap-2 rounded-full border px-4 text-xs font-medium transition active:scale-95 ${
+              saveState === 'saved'
+                ? 'border-accent/40 bg-accent/10 text-accent'
+                : saveState === 'failed'
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-line bg-surface/95 text-ink backdrop-blur hover:border-ink/30'
+            }`}
+          >
+            {saveState === 'saved' ? <Check className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+            {saveState === 'saving' ? 'Saving' : saveState === 'saved' ? 'Saved' : saveState === 'failed' ? 'Retry' : 'Save'}
+          </button>
         </div>
       </footer>
     </>

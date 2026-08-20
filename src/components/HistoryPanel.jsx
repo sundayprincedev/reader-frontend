@@ -52,7 +52,10 @@ export default function HistoryPanel({ open, book, busy, onClose, onRestore, onR
                     <div className="mt-2.5">
                       <Progress value={entry.percent} />
                     </div>
-                    <p className="mt-2 text-[11px] text-faint">{formatRelative(entry.recorded)}</p>
+                    <p className="mt-2 text-[11px] text-faint">
+                      {formatRelative(entry.recorded)}
+                      {entry.manual ? <span className="text-accent"> · saved by you</span> : null}
+                    </p>
                   </button>
                 </li>
               ))}

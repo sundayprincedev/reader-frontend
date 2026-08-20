@@ -35,6 +35,7 @@ export default function Reader() {
   const [busy, setBusy] = useState(false)
   const [scale, setScale] = useState(storedScale)
   const [live, setLive] = useState({ percent: 0, label: '' })
+  const [saveState, setSaveState] = useState('idle')
 
   const startLocation = useRef(null)
   const surfaceRef = useRef(null)
@@ -42,7 +43,7 @@ export default function Reader() {
   const { isImmersive, enter, exit, canFullscreen } = useImmersiveMode()
   const { visible, toggle, hide } = useIdleChrome()
 
-  const { report, flush } = useReadingSession(key, (saved) => {
+  const { report, flush, save } = useReadingSession(key, (saved) => {
     setBook((current) => (current ? { ...current, ...saved } : saved))
   })
 
@@ -86,10 +87,15 @@ export default function Reader() {
   const handleLocation = useCallback(
     (location) => {
       setLive({ percent: location.percent, label: location.label })
-      report(location)
+      report({
+        ...location,
+        width: Math.round(window.innerWidth),
+        height: Math.round(window.innerHeight),
+        scale,
+      })
       hide()
     },
-    [report, hide],
+    [report, hide, scale],
   )
 
   const handleReady = useCallback(
@@ -119,6 +125,13 @@ export default function Reader() {
     },
     [book, key],
   )
+
+  const handleSave = useCallback(async () => {
+    setSaveState('saving')
+    const succeeded = await save()
+    setSaveState(succeeded ? 'saved' : 'failed')
+    setTimeout(() => setSaveState('idle'), succeeded ? 1600 : 2600)
+  }, [save])
 
   const handleScale = useCallback((direction) => {
     setScale((current) => {
@@ -261,6 +274,8 @@ export default function Reader() {
         scale={scale}
         onToggleImmersive={toggleImmersive}
         onOpenHistory={() => setHistoryOpen(true)}
+        onSave={handleSave}
+        saveState={saveState}
         onScaleChange={handleScale}
         onExit={async () => {
           await flush()
